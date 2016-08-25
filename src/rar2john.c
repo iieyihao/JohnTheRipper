@@ -202,7 +202,7 @@ static void process_file(const char *archive_name)
 	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) { /* handle SFX archives */
 		if (memcmp(marker_block, "MZ", 2) == 0) {
 			/* jump to "Rar!" signature */
-			while (!feof(fp)) {
+			while (1) {
 				count = fread(buf, 1, CHUNK_SIZE, fp);
 				if( (pos = memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x00", 7))) {
 					diff = count - (pos - buf);
@@ -211,6 +211,8 @@ static void process_file(const char *archive_name)
 					found = 1;
 					break;
 				}
+				if (feof(fp))	//We shold examine the EOF before seek back
+					break;
 				jtr_fseek64(fp, -6, SEEK_CUR);
 			}
 			if (!found) {
@@ -734,6 +736,7 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
             SIZE_SALT50, base64_convert_cp(rar5_salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0, 0),
             rar5_interations, base64_convert_cp(HeadersInitV,e_b64_raw,SIZE_INITV,Hex2,e_b64_hex,sizeof(Hex2),0, 0),
             SIZE_PSWCHECK, base64_convert_cp(PswCheck,e_b64_raw,SIZE_PSWCHECK,Hex3,e_b64_hex,sizeof(Hex3),0, 0));
+        Encrypted = 0;	//We should reset the global static variable to be 0 after it has been changed.
         return 0;
     }
 	if (!read_uint32(fp, &head_crc, &header_bytes_read)) return 0;
@@ -829,7 +832,7 @@ static int process_file5(const char *archive_name) {
 	if (memcmp(Magic, "\x52\x61\x72\x21\x1a\x07\x01\x00", 8)) { /* handle SFX archives */
 		if (memcmp(Magic, "MZ", 2) == 0) {
 			/* jump to "Rar!" signature */
-			while (!feof(fp)) {
+			while (1) {
 				count = fread(buf, 1, CHUNK_SIZE, fp);
 				if( (pos = (char*)memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x01\x00", 8))) {
 					diff = count - (pos - buf);
@@ -838,6 +841,8 @@ static int process_file5(const char *archive_name) {
 					found = 1;
 					break;
 				}
+				if (feof(fp))	//We shold examine the EOF before seek back
+					break;
 				jtr_fseek64(fp, -7, SEEK_CUR);
 			}
             if (!found)
